@@ -377,6 +377,7 @@ async fn handle_root(
         config.web.timeouts.websocket_open_secs,
         config.web.timeouts.reconnect_grace_secs,
         config.web.timeouts.carrier_probe_coalesce_ms,
+        config.web.yandex_cdn_compat,
         &generation.rng,
     );
     let mut response = full_response(StatusCode::OK, Bytes::from(page.body));

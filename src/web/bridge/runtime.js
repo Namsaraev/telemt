@@ -26,6 +26,7 @@ const failureReason=(error,fallback)=>error&&canonicalFailures.includes(error.te
 const status=state=>{if(port&&!closed)port.postMessage({t:'status',state})};
 const socketURL=()=>relayOrigin.replace(/^https:/,'wss:')+'/api/v1/ws';
 const requestClient=requestSupport.create({
+ yandexCdnCompat:__YANDEX_CDN_COMPAT__,
  origin:()=>relayOrigin,closed:()=>closed,retryMs:()=>bridgeRetryMs,longPollMs:()=>longPollMs,requestMs:()=>bridgeRequestMs,
  batchLimit:()=>batchLimit,read:(response,limit,exact,signal)=>responseBody.read(response,limit,exact,signal),cancel:responseBody.cancel,
  failure,reason:failureReason,retrying:()=>status('reconnecting')
@@ -475,7 +476,7 @@ async function pollLane(lane){
 }
 function deleteSession(){
  const token=cleanupToken||sessionToken,headers=canonicalFailures.includes(terminalFailure)?{'X-Carrier-Failure':terminalFailure}:null;
- if(token)fetch(relayOrigin+'/api/v1/session',options('DELETE',token,null,headers,undefined,true)).catch(()=>{});
+ if(token)fetch(relayOrigin+'/api/v1/session',requestClient.wireOptions('/api/v1/session',options('DELETE',token,null,headers,undefined,true))).catch(()=>{});
 }
 function close(notifyServer){
  if(closed)return;closed=true;if(recoveryController)recoveryController.cancel();rejectRecoveryCommit(failure('network','bridge closed'));if(helloTimer)clearTimeout(helloTimer);helloTimer=null;if(carrierTimer)clearTimeout(carrierTimer);clearProbeTimer();if(schedulerTimer)clearTimeout(schedulerTimer);schedulerTimer=null;if(attemptController)attemptController.abort();if(pollController)pollController.abort();

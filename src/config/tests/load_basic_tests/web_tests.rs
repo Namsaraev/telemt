@@ -33,6 +33,21 @@ max_streams_per_session = 16
 "#;
 
 #[test]
+fn web_yandex_cdn_compat_is_opt_in() {
+    assert!(!WebConfig::default().yandex_cdn_compat);
+    assert!(!load_config_from_temp_toml(WEB_CONFIG).web.yandex_cdn_compat);
+    for enabled in [false, true] {
+        let source = WEB_CONFIG.replace("[web]", &format!("[web]\nyandex_cdn_compat = {enabled}"));
+        assert_eq!(
+            load_config_from_temp_toml(&source).web.yandex_cdn_compat,
+            enabled
+        );
+    }
+    let invalid = WEB_CONFIG.replace("[web]", "[web]\nyandex_cdn_compat = \"yandex\"");
+    assert!(load_config_error_from_temp_toml(&invalid).contains("boolean"));
+}
+
+#[test]
 fn web_config_builds_canonical_runtime_snapshot() {
     let config = load_config_from_temp_toml(WEB_CONFIG);
     let runtime = config.web.runtime.expect("WEB runtime snapshot");
