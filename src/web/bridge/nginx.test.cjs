@@ -4,13 +4,16 @@ const { test } = require('node:test');
 const http = require('node:http');
 const { once } = require('node:events');
 const { spawn, spawnSync } = require('node:child_process');
-const { mkdtempSync, readFileSync, writeFileSync, rmSync } = require('node:fs');
+const { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { resolve } = require('node:path');
 const vm = require('node:vm');
 
 test('Nginx restores bridge methods, preserves payloads, and prevents caching', { timeout: 20000 }, async () => {
-  const directory = mkdtempSync(resolve(tmpdir(), 'telemt-nginx-'));
+  const directory = mkdtempSync(resolve(tmpdir(), 'telemt-nginx-')).replaceAll('\\', '/');
+  mkdirSync(`${directory}/logs`);
+  const binary = process.env.NGINX_BINARY || '/usr/sbin/nginx';
+  const args = ['-p', directory + '/', '-c', `${directory}/nginx.conf`];
   const origin = http.createServer(async (request, response) => {
     const chunks = [];
     for await (const chunk of request) chunks.push(chunk);
@@ -31,7 +34,7 @@ test('Nginx restores bridge methods, preserves payloads, and prevents caching', 
     await once(reservation, 'listening');
     const port = reservation.address().port;
     await new Promise(resolve => reservation.close(resolve));
-    const snippets = resolve(__dirname, '../../../docs/WEB/nginx');
+    const snippets = resolve(__dirname, '../../../docs/WEB/nginx').replaceAll('\\', '/');
     const config = `
       worker_processes 1;
       pid "${directory}/nginx.pid";
@@ -41,6 +44,9 @@ test('Nginx restores bridge methods, preserves payloads, and prevents caching', 
         access_log off;
         client_body_temp_path "${directory}/body";
         proxy_temp_path "${directory}/proxy";
+        fastcgi_temp_path "${directory}/fastcgi";
+        uwsgi_temp_path "${directory}/uwsgi";
+        scgi_temp_path "${directory}/scgi";
         include "${snippets}/yandex-cdn-map.conf";
         server {
           listen 127.0.0.1:${port};
@@ -55,11 +61,9 @@ test('Nginx restores bridge methods, preserves payloads, and prevents caching', 
         }
       }`;
     writeFileSync(`${directory}/nginx.conf`, config);
-    const binary = process.env.NGINX_BINARY || '/usr/sbin/nginx';
-    const args = ['-p', directory, '-c', `${directory}/nginx.conf`];
-    const syntax = spawnSync(binary, [...args, '-t'], { encoding: 'utf8' });
+    const syntax = spawnSync(binary, [...args, '-t'], { encoding: 'utf8', windowsHide: true });
     assert.equal(syntax.status, 0, String(syntax.error || syntax.stderr));
-    nginx = spawn(binary, [...args, '-g', 'daemon off;'], { stdio: 'ignore' });
+    nginx = spawn(binary, [...args, '-g', 'daemon off;'], { stdio: 'ignore', windowsHide: true });
     const url = `http://127.0.0.1:${port}`;
     let ready = false;
     for (let attempt = 0; attempt < 100; attempt++) {
@@ -114,7 +118,7 @@ test('Nginx restores bridge methods, preserves payloads, and prevents caching', 
   } finally {
     if (nginx && nginx.exitCode === null) {
       const stopped = once(nginx, 'exit');
-      nginx.kill('SIGTERM');
+      spawnSync(binary, [...args, '-s', 'quit'], { windowsHide: true });
       await stopped;
     }
     origin.closeAllConnections();

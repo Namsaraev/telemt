@@ -38,7 +38,8 @@ lane headers are preserved. Downlink and cleanup have no Content-Type.
 Copy [yandex-cdn-map.conf](nginx/yandex-cdn-map.conf) and
 [yandex-cdn-proxy.conf](nginx/yandex-cdn-proxy.conf) to `/etc/nginx/snippets/`.
 Include the map once inside `http {}` (for example at the top of a file loaded
-by `/etc/nginx/conf.d/*.conf`). Include the proxy snippet only in the dedicated
+by `/etc/nginx/conf.d/*.conf`). If `map_hash_bucket_size` is already configured,
+keep one directive with a value of at least 64. Include the proxy snippet only in the dedicated
 WEB vhost location. All `proxy_set_header` directives belong in that same
 location because defining them there disables inheritance from the server.
 
