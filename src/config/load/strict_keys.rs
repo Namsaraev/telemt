@@ -262,6 +262,7 @@ const LISTENER_CONFIG_KEYS: &[&str] = &[
 
 const WEB_CONFIG_KEYS: &[&str] = &[
     "enabled",
+    "yandex_cdn_compat",
     "carrier",
     "carriers",
     "carrier_learning",
@@ -471,6 +472,7 @@ const UPSTREAM_CONFIG_KEYS: &[&str] = &[
     "scopes",
     "ipv4",
     "ipv6",
+    "prefer",
 ];
 
 const PROXY_MODES_CONFIG_KEYS: &[&str] = &["classic", "secure", "tls"];
@@ -487,6 +489,10 @@ const LOGGING_CONFIG_KEYS: &[&str] = &[
 
 // Recursive table traversal and key suggestion logic.
 mod check;
+
+// Regression coverage for accepted keys and strict-mode rejection.
+#[cfg(test)]
+mod tests;
 
 /// Rejects or reports unknown configuration keys according to strict mode.
 pub(super) fn handle_unknown_config_keys(parsed_toml: &toml::Value) -> Result<()> {

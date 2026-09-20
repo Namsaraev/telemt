@@ -33,6 +33,23 @@ max_streams_per_session = 16
 "#;
 
 #[test]
+fn web_yandex_cdn_and_upstream_prefer_load_in_strict_mode() {
+    for enabled in [false, true] {
+        for prefer in [4, 6] {
+            let web = WEB_CONFIG.replace("[web]", &format!("[web]\nyandex_cdn_compat = {enabled}"));
+            let source = format!(
+                "[general]\nconfig_strict = true\n{web}\n\
+                 [[upstreams]]\ntype = \"socks5\"\naddress = \"127.0.0.1:10808\"\nprefer = {prefer}\n"
+            );
+            let config = load_config_from_temp_toml(&source);
+            assert!(config.general.config_strict);
+            assert_eq!(config.web.yandex_cdn_compat, enabled);
+            assert_eq!(config.upstreams[0].prefer, Some(prefer));
+        }
+    }
+}
+
+#[test]
 fn web_yandex_cdn_compat_is_opt_in() {
     assert!(!WebConfig::default().yandex_cdn_compat);
     assert!(!load_config_from_temp_toml(WEB_CONFIG).web.yandex_cdn_compat);
