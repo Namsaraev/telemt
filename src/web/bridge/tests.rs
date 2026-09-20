@@ -18,6 +18,7 @@ fn render_page(bootstrap: &str, candidate_count: usize) -> BridgePage {
         15,
         120,
         0,
+        false,
         &SecureRandom::new(),
     )
 }
@@ -26,6 +27,7 @@ fn render_page(bootstrap: &str, candidate_count: usize) -> BridgePage {
 fn rendered_page_contains_bounded_negotiation_contract() {
     let page = render_page("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 4);
     assert!(!page.body.contains("__"));
+    assert!(page.body.contains("yandexCdnCompat:false"));
     assert!(!page.body.contains("bridge="));
     assert!(page.body.contains("X-Carrier-Capabilities"));
     assert!(page.body.contains("X-Carrier-Attempt"));
@@ -77,10 +79,12 @@ fn rendered_page_embeds_the_configured_bridge_timing_policy() {
         11,
         119,
         4,
+        true,
         &SecureRandom::new(),
     );
 
     assert!(page.body.contains("let longPollMs=17*1000"));
+    assert!(page.body.contains("yandexCdnCompat:true"));
     assert!(page.body.contains("bridgeRequestMs=7*1000"));
     assert!(page.body.contains("bridgeRetryMs=41*1000"));
     assert!(page.body.contains("bridgeRecoveryMs=13*1000"));
@@ -128,6 +132,7 @@ fn disabled_negotiation_does_not_arm_a_carrier_deadline() {
         15,
         120,
         0,
+        false,
         &SecureRandom::new(),
     );
     assert!(page.body.contains(

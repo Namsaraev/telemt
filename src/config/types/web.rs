@@ -407,6 +407,9 @@ pub struct WebConfig {
     /// Enables issuance of new WEB bridge and session credentials.
     #[serde(default)]
     pub enabled: bool,
+    /// Adapts bridge HTTP methods for Yandex CDN; requires origin method restoration.
+    #[serde(default)]
+    pub yandex_cdn_compat: bool,
     /// Sole carrier when negotiation is disabled and final fallback when enabled.
     #[serde(default)]
     pub carrier: WebCarrier,
@@ -467,6 +470,7 @@ impl Default for WebConfig {
     fn default() -> Self {
         Self {
             enabled: false,
+            yandex_cdn_compat: false,
             carrier: WebCarrier::default(),
             carriers: WebCarriers::default(),
             carrier_learning: default_web_carrier_learning(),

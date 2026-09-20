@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [ "*" ]
+    branches: [ "**" ]
   pull_request:
-    branches: [ "*" ]
+    branches: [ "**" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -34,6 +34,18 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
+
+      - name: Test WEB bridge HTTP methods
+        run: node --test src/web/bridge/request.test.cjs
+
+      - name: Test Nginx CDN method restoration
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nginx
+          node --test src/web/bridge/nginx.test.cjs
+
+      - name: Test WEB configuration and protocol
+        run: cargo test web
 
       - name: Build Release
         run: cargo build --release --verbose

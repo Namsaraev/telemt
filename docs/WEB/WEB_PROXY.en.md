@@ -252,6 +252,13 @@ backend telemt_web
 
 The frontend or `defaults` section must also set `timeout client 65s` or longer for the default WebSocket liveness interval. HAProxy's public ALPN must include `h2` for `https-lanes` and `http/1.1` for WebSocket Upgrade. Preserve `Connection`, `Upgrade`, and `Sec-WebSocket-*`; do not rewrite the path, raw query, body, or the `Authorization`, `Content-Type`, `X-Up-Seq`, `X-Down-Cursor`, and `X-Lane-ID` carrier headers.
 
+## Yandex CDN compatibility
+
+Set `[web] yandex_cdn_compat = true` to adapt the embedded bridge's HTTP methods
+for an OPTIONS/GET-only CDN route. The default is `false`. This requires Nginx
+method restoration and disabled CDN caching. See [YANDEX_CDN.en.md](YANDEX_CDN.en.md)
+for the wire contract, tested Nginx snippets, and deployment requirements.
+
 ## Lifecycle and reload behavior
 
 | Configuration | Runtime behavior |

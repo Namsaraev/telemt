@@ -6,6 +6,15 @@ function create(settings){
   function abort(){clearTimeout(timer);signal.removeEventListener('abort',abort);reject(new Error('request aborted'))}
   if(signal)signal.addEventListener('abort',abort,{once:true});
  });
+ // Apply the CDN mapping once, before retries, without mutating the logical request.
+ function wireOptions(path,value){
+  if(!settings.yandexCdnCompat)return value;
+  if(path==='/api/v1/session'&&value.method==='DELETE')return Object.assign({},value,{method:'OPTIONS',headers:Object.assign({},value.headers,{'X-Telemt-CDN-Method':'DELETE'})});
+  if(value.method!=='POST')return value;
+  if(path==='/api/v1/session'||path==='/api/v1/up')return Object.assign({},value,{method:'OPTIONS'});
+  if(path==='/api/v1/down')return Object.assign({},value,{method:'GET'});
+  return value;
+ }
  const options=(method,token,body,headers,signal,keepalive)=>({
   method,body,signal,keepalive:!!keepalive,mode:'same-origin',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',
   headers:Object.assign(token?{Authorization:'Bearer '+token}:{},body?{'Content-Type':'application/octet-stream'}:{},headers||{})
@@ -27,6 +36,7 @@ function create(settings){
   return {limit:0,exact:true,reason:'http'};
  }
  async function send(path,frozenOptions,remainingBudget,maxAttempts){
+  frozenOptions=wireOptions(path,frozenOptions);
   let delay=250,attempt=0,lastReason='network';maxAttempts=maxAttempts||9;
   const initialBudget=remainingBudget?Math.min(settings.retryMs(),remainingBudget()):settings.retryMs();
   const deadline=Date.now()+Math.max(0,initialBudget),external=frozenOptions.signal;
@@ -67,7 +77,7 @@ function create(settings){
   }
   throw settings.failure(lastReason,'carrier retry limit reached');
  }
- return Object.freeze({options,pause,send});
+ return Object.freeze({options,wireOptions,pause,send});
 }
 globalThis.TelemtBridgeRequest=Object.freeze({create});
 })();
