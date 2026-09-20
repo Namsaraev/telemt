@@ -20,7 +20,11 @@ prefer = 4
         assert!(handle_unknown_config_keys(&parsed).is_ok());
 
         for (key, typo, path) in [
-            ("yandex_cdn_compat", "yandex_cdn_compa", "web.yandex_cdn_compa"),
+            (
+                "yandex_cdn_compat",
+                "yandex_cdn_compa",
+                "web.yandex_cdn_compa",
+            ),
             ("prefer", "preferr", "upstreams[0].preferr"),
         ] {
             let invalid: toml::Value = toml::from_str(&source.replace(key, typo)).unwrap();
