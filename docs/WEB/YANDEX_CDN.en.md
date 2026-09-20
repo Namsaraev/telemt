@@ -54,11 +54,11 @@ upstream telemt_yandex_web {
 
 server {
     listen 443 ssl;
-    server_name tmt.rusc1.pin.dpdns.org;
+    server_name tmt.example.com;
     access_log off;
 
-    ssl_certificate /etc/letsencrypt/live/tmt.rusc1.pin.dpdns.org/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/tmt.rusc1.pin.dpdns.org/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/tmt.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tmt.example.com/privkey.pem;
 
     # Populate this file with set_real_ip_from for verified CDN origin peers only.
     include /etc/nginx/snippets/yandex-cdn-trusted-peers.conf;
@@ -71,7 +71,7 @@ server {
     location / {
         proxy_pass http://telemt_yandex_web;
         proxy_http_version 1.1;
-        proxy_set_header Host tmt.rusc1.pin.dpdns.org;
+        proxy_set_header Host tmt.example.com;
         proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header Connection "";
         include /etc/nginx/snippets/yandex-cdn-proxy.conf;
