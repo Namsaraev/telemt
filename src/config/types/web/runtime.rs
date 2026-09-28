@@ -18,6 +18,8 @@ pub(crate) struct WebRuntimeVhost {
     pub(crate) host: String,
     /// Exact slash-delimited endpoint base, including the trailing slash.
     pub(crate) base: String,
+    /// Opt-in HTTP header transport selected by this virtual host.
+    pub(crate) yandex_cdn_compat: bool,
     /// Restart-frozen decoy capability-scan policy.
     pub(crate) decoy_fasttrack_mode: WebDecoyFastTrackMode,
     /// Immutable ordinary-site fallback snapshot.

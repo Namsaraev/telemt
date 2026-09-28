@@ -26,6 +26,8 @@ use crate::web::telemetry::WebDecoyFastTrackDisposition;
 mod activity;
 // Body collection retains allocation permits through request processing.
 mod body;
+// Per-vhost CDN envelopes are validated before normal authenticated handlers.
+mod cdn;
 // Canonical capability parsing and complete scans remain isolated from HTTP routing.
 mod capability;
 // Authentic credential containment stays independent from carrier routing.
@@ -187,6 +189,14 @@ async fn handle_request(
     let Some(vhost) = web_runtime.vhosts.get(host).cloned() else {
         return generic_not_found();
     };
+    if cdn::present(&request) {
+        if !vhost.yandex_cdn_compat
+            || !request.body_mut().finish_empty()
+            || cdn::adapt(&mut request, &vhost.base).is_none()
+        {
+            return response::private_not_found();
+        }
+    }
     secrets::mark_internal_credential(&mut request, web_runtime, &runtime);
     let suffix = request.uri().path().strip_prefix(&vhost.base);
     if suffix == Some(WEBSOCKET_SUFFIX) {
@@ -388,7 +398,8 @@ async fn handle_root(
         config.web.timeouts.websocket_open_secs,
         config.web.timeouts.reconnect_grace_secs,
         config.web.timeouts.carrier_probe_coalesce_ms,
-        config.web.debug.bridge_diagnostics_enabled(),
+        config.web.debug.bridge_diagnostics_enabled() && !vhost.yandex_cdn_compat,
+        vhost.yandex_cdn_compat,
         &generation.rng,
     );
     let mut response = full_response(StatusCode::OK, Bytes::from(page.body));

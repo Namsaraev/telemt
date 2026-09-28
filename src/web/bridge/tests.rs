@@ -20,6 +20,7 @@ fn render_page(bootstrap: &str, candidate_count: usize) -> BridgePage {
         120,
         0,
         false,
+        false,
         &SecureRandom::new(),
     )
 }
@@ -44,6 +45,7 @@ fn render_diagnostic_page(bootstrap: &str) -> BridgePage {
         120,
         0,
         true,
+        false,
         &SecureRandom::new(),
     )
 }
@@ -95,6 +97,7 @@ fn rendered_page_resolves_carriers_against_the_exact_base_path() {
         120,
         0,
         true,
+        false,
         &SecureRandom::new(),
     );
 
@@ -148,6 +151,7 @@ fn rendered_page_embeds_the_configured_bridge_timing_policy() {
         119,
         4,
         false,
+        false,
         &SecureRandom::new(),
     );
 
@@ -200,6 +204,7 @@ fn disabled_negotiation_does_not_arm_a_carrier_deadline() {
         15,
         120,
         0,
+        false,
         false,
         &SecureRandom::new(),
     );

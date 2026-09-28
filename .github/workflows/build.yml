@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [ "*" ]
+    branches: [ "**" ]
   pull_request:
-    branches: [ "*" ]
+    branches: [ "**" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -34,6 +34,12 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
+
+      - name: Test WEB bridge CDN transport
+        run: node --test src/web/bridge/request.test.cjs
+
+      - name: Test WEB configuration and transport
+        run: cargo test --locked web
 
       - name: Build Release
         run: cargo build --release --verbose

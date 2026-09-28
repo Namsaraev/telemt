@@ -6,6 +6,45 @@ function create(settings){
   function abort(){clearTimeout(timer);signal.removeEventListener('abort',abort);reject(new Error('request aborted'))}
   if(signal)signal.addEventListener('abort',abort,{once:true});
  });
+ // Freeze the wire envelope once so retries retain the same payload and sequence.
+ function wireOptions(path,value){
+  if(!settings.yandexCdnCompat)return value;
+  const payload=value.method==='POST'&&(path==='/api/v1/session'||path==='/api/v1/up');
+  if(!payload&&!(value.method==='POST'&&path==='/api/v1/down')&&!(value.method==='DELETE'&&path==='/api/v1/session'))return value;
+  const headers=Object.assign({},value.headers,{'X-Telemt-CDN-Method':value.method});
+  if(payload){
+   const body=value.body,bytes=ArrayBuffer.isView(body)?new Uint8Array(body.buffer,body.byteOffset,body.byteLength):new Uint8Array(body);
+   if(!bytes.length||bytes.length>32768)throw new Error('invalid CDN payload size');
+   let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
+   const encoded=btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+   const count=Math.ceil(encoded.length/6144);headers['X-Telemt-CDN-Body-Count']=String(count);
+   for(let i=0;i<count;i++)headers['X-Telemt-CDN-Body-'+i]=encoded.slice(i*6144,(i+1)*6144);
+  }else if(value.body&&value.body.byteLength)throw new Error('unexpected CDN payload');
+  return Object.assign({},value,{method:'GET',body:null,headers});
+ }
+ // DATA is a byte stream: split large frames before queue reservation, preserving stream IDs.
+ function prepareFrames(data){
+  if(!settings.yandexCdnCompat||!data)return data;
+  const view=new DataView(data),parts=[];let offset=0,total=0;
+  while(offset<data.byteLength){
+   if(data.byteLength-offset<8)throw new Error('invalid frame batch');
+   const size=view.getUint32(offset+4),end=offset+8+size,type=view.getUint8(offset);
+   if(size>1048576||end>data.byteLength)throw new Error('invalid frame');
+   if(type!==2&&size+8>32768)throw new Error('oversized CDN control frame');
+   if(type===2&&size>16384){
+    for(let start=0;start<size;start+=16384){
+     const length=Math.min(16384,size-start),part=new Uint8Array(8+length);
+     part.set(new Uint8Array(data,offset,4));new DataView(part.buffer).setUint32(4,length);
+     part.set(new Uint8Array(data,offset+8+start,length),8);parts.push(part);total+=part.length;
+    }
+   }else{const part=new Uint8Array(data,offset,end-offset);parts.push(part);total+=part.length}
+   offset=end;
+  }
+  if(total===data.byteLength)return data;
+  const joined=new Uint8Array(total);offset=0;
+  for(const part of parts){joined.set(part,offset);offset+=part.length}
+  return joined.buffer;
+ }
  const options=(method,token,body,headers,signal,keepalive)=>({
   method,body,signal,keepalive:!!keepalive,mode:'same-origin',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',
   headers:Object.assign(token?{Authorization:'Bearer '+token}:{},body?{'Content-Type':'application/octet-stream'}:{},headers||{})
@@ -27,6 +66,7 @@ function create(settings){
   return {limit:0,exact:true,reason:'http'};
  }
  async function send(path,frozenOptions,remainingBudget,maxAttempts){
+  frozenOptions=wireOptions(path,frozenOptions);
   let delay=250,attempt=0,lastReason='network';maxAttempts=maxAttempts||9;
   const initialBudget=remainingBudget?Math.min(settings.retryMs(),remainingBudget()):settings.retryMs();
   const deadline=Date.now()+Math.max(0,initialBudget),external=frozenOptions.signal;
@@ -67,7 +107,7 @@ function create(settings){
   }
   throw settings.failure(lastReason,'carrier retry limit reached');
  }
- return Object.freeze({options,pause,send});
+ return Object.freeze({options,wireOptions,prepareFrames,pause,send});
 }
 globalThis.TelemtBridgeRequest=Object.freeze({create});
 })();

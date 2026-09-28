@@ -438,3 +438,7 @@ See the complete [Control API contract](../Architecture/API/API.md) for request 
 | `https-lanes` works but streams still block each other | Confirm public HTTP/2 negotiation, preserve `X-Lane-ID`, and provide enough TLS-terminator upstream connections for concurrent private HTTP/1.1 polls. |
 | Telegram Desktop rejects the link | Omit the port, use a valid FQDN, port 443 externally, and only `plain` or `dd` secret mode. |
 | One node works but a load-balanced pool is intermittent | Add complete-vhost affinity; WEB credential registries are process-local. |
+
+## Per-vhost CDN transport
+
+For the optional GET/header transport, see [Yandex CDN compatibility](YANDEX_CDN.en.md).

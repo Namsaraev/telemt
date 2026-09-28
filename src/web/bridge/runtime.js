@@ -28,13 +28,14 @@ const failureReason=(error,fallback)=>error&&canonicalFailures.includes(error.te
 const status=__STATUS_FUNCTION__;
 const socketURL=()=>relayBase.replace(/^https:/,'wss:')+'/api/v1/ws';
 const requestClient=requestSupport.create({
+ yandexCdnCompat:__YANDEX_CDN_COMPAT__,
  base:()=>relayBase,closed:()=>closed,retryMs:()=>bridgeRetryMs,longPollMs:()=>longPollMs,requestMs:()=>bridgeRequestMs,
  batchLimit:()=>batchLimit,read:(response,limit,exact,signal)=>responseBody.read(response,limit,exact,signal),cancel:responseBody.cancel,
  failure,reason:failureReason,retrying:()=>status('reconnecting')
 });
 const options=requestClient.options,pause=requestClient.pause,request=requestClient.send;
 const buffers=bufferSupport.create({
- limits:()=>({batchBytes:batchLimit,queueBytes:queueLimit,queueItems:queueItemLimit,laneBytes:laneQueueLimit,laneItems:laneItemLimit}),
+ limits:()=>({batchBytes:__YANDEX_CDN_COMPAT__?Math.min(batchLimit,32768):batchLimit,queueBytes:queueLimit,queueItems:queueItemLimit,laneBytes:laneQueueLimit,laneItems:laneItemLimit}),
  buffered:()=>{let total=socket?socket.bufferedAmount:0;for(const value of lanes.values())if(value.socket)total+=value.socket.bufferedAmount;return total},
  pending:()=>pending,laneMode:()=>carrier==='https-lanes'||carrier==='websocket-lanes',maxStreams:()=>maxStreams,failure
 });
@@ -252,7 +253,7 @@ function queueCarrier(data){
  try{
   if(carrier==='https')queueUp(data);
   else if(carrier==='websocket')queueSocket(data);
-  else for(const value of splitFrames(data)){if(closed)break;queueLane(value)}
+  else for(const value of splitFrames(data,__YANDEX_CDN_COMPAT__?262144:4096)){if(closed)break;queueLane(value)}
  }catch(error){fail('protocol')}
 }
 function queueUp(data){if(!reserve(data,null)){fail('capacity');return}upPending.push(data);runUp()}
@@ -478,7 +479,7 @@ async function pollLane(lane){
 }
 function deleteSession(){
  const token=cleanupToken||sessionToken,headers=canonicalFailures.includes(terminalFailure)?{'X-Carrier-Failure':terminalFailure}:null;
- if(token)fetch(relayBase+'/api/v1/session',options('DELETE',token,null,headers,undefined,true)).catch(()=>{});
+ if(token)fetch(relayBase+'/api/v1/session',requestClient.wireOptions('/api/v1/session',options('DELETE',token,null,headers,undefined,true))).catch(()=>{});
 }
 function close(notifyServer){
  if(closed)return;closed=true;if(recoveryController)recoveryController.cancel();rejectRecoveryCommit(failure('network','bridge closed'));if(helloTimer)clearTimeout(helloTimer);helloTimer=null;if(carrierTimer)clearTimeout(carrierTimer);clearProbeTimer();if(schedulerTimer)clearTimeout(schedulerTimer);schedulerTimer=null;if(attemptController)attemptController.abort();if(pollController)pollController.abort();
@@ -496,7 +497,7 @@ function activatePort(nextPort){
   if(message.data instanceof ArrayBuffer){
    if(!createStarted){__DIAGNOSTIC_HELLO_RECEIVED__;createStarted=true;if(helloTimer)clearTimeout(helloTimer);helloTimer=null;helloFrame=message.data;if(negotiationEnabled){negotiationStartedAt=Date.now();armCarrierDeadline(attemptEpoch)}createSession(attemptEpoch)}
    else{
-    let data;try{data=acceptNativeFrames(message.data)}catch(error){fail(error&&error.telemtReason==='capacity'?'capacity':'protocol');return}if(!data)return;
+    let data;try{data=requestClient.prepareFrames(acceptNativeFrames(message.data))}catch(error){fail(error&&error.telemtReason==='capacity'?'capacity':'protocol');return}if(!data)return;
     if(recoveryController.active()&&!recoveryReplaced){if(!reserve(data,null)){fail('capacity');return}recoveryPending.push(data)}
     else if(!carrierCommitted){if(!reserve(data,null)){fail('capacity');return}pending.push(data);maybeStartCandidate()}
     else queueCarrier(data);

@@ -74,6 +74,9 @@ pub struct WebVhostConfig {
     /// Optional canonical WEB endpoint prefix without surrounding slashes.
     #[serde(default)]
     pub base_path: String,
+    /// Encode bridge HTTP payloads in GET headers for this virtual host only.
+    #[serde(default)]
+    pub yandex_cdn_compat: bool,
     /// Stable public destination tuple used by inner relay routing and KDF metadata.
     pub public_addr: SocketAddr,
     /// Ordinary-site fallback for this hostname.

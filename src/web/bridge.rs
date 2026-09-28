@@ -34,6 +34,7 @@ pub(crate) fn render(
     reconnect_grace_secs: u64,
     carrier_probe_coalesce_ms: u64,
     bridge_diagnostics_enabled: bool,
+    yandex_cdn_compat: bool,
     rng: &SecureRandom,
 ) -> BridgePage {
     let mut nonce = [0u8; 18];
@@ -124,6 +125,7 @@ pub(crate) fn render(
         .replace("__HOST__", host)
         .replace("__BASE_PREFIX__", base_prefix)
         .replace("__BOOTSTRAP__", bootstrap)
+        .replace("__YANDEX_CDN_COMPAT__", if yandex_cdn_compat { "true" } else { "false" })
         .replace("__BATCH_LIMIT__", &batch_limit.to_string())
         .replace("__QUEUE_LIMIT__", &queue_limit.to_string())
         .replace("__QUEUE_ITEMS__", &queue_items.to_string())

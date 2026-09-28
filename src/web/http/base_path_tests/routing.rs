@@ -195,6 +195,7 @@ async fn decoy_forwarding_preserves_every_reference_request_target() {
     vhosts.insert(
         "proxy.example.com".to_string(),
         Arc::new(WebRuntimeVhost {
+            yandex_cdn_compat: false,
             host: previous.host.clone(),
             base: previous.base.clone(),
             decoy_fasttrack_mode: previous.decoy_fasttrack_mode,

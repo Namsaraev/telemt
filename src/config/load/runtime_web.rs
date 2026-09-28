@@ -117,6 +117,7 @@ pub(super) fn rebuild(config: &mut ProxyConfig) -> Result<()> {
             vhost.host.clone(),
             Arc::new(WebRuntimeVhost {
                 host: vhost.host.clone(),
+                yandex_cdn_compat: vhost.yandex_cdn_compat,
                 base: if vhost.base_path.is_empty() {
                     "/".to_string()
                 } else {

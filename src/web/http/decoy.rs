@@ -29,7 +29,7 @@ where
     B: hyper::body::Body<Data = Bytes> + Send + 'static,
     B::Error: Error + Send + Sync + 'static,
 {
-    if super::secrets::has_internal_credential(&request) {
+    if super::cdn::present(&request) || super::secrets::has_internal_credential(&request) {
         return super::response::private_not_found();
     }
     super::set_trace_route(&request, crate::web::trace::TraceRoute::Decoy);

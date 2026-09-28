@@ -23,6 +23,9 @@ use crate::web::manager::{
 
 #[path = "legacy_tests.rs"]
 mod legacy_tests;
+// CDN envelopes exercise the same live HTTP/session path as ordinary requests.
+#[path = "cdn_integration_tests.rs"]
+mod cdn_integration_tests;
 #[path = "negotiation_tests.rs"]
 mod negotiation_tests;
 // Client failure diagnostics remain separate from negotiation state scenarios.
@@ -156,6 +159,7 @@ fn runtime_config_with_carriers_and_deadlines(
         index: "index.html".to_string(),
     });
     let vhost = Arc::new(WebRuntimeVhost {
+        yandex_cdn_compat: false,
         host: "proxy.example.com".to_string(),
         base: base.to_string(),
         decoy_fasttrack_mode: WebDecoyFastTrackMode::Off,
@@ -169,6 +173,7 @@ fn runtime_config_with_carriers_and_deadlines(
     vhosts.insert(
         "other.example.com".to_string(),
         Arc::new(WebRuntimeVhost {
+            yandex_cdn_compat: false,
             host: "other.example.com".to_string(),
             base: "/".to_string(),
             decoy_fasttrack_mode: WebDecoyFastTrackMode::Off,

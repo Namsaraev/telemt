@@ -153,7 +153,16 @@ pub(super) async fn collect_body(
         }
     };
     drop(reader_budget);
-    let request = Request::from_parts(parts, Empty::new());
+    let mut request = Request::from_parts(parts, Empty::new());
+    // Decode only after normal handler authentication and byte-budget admission.
+    let body = if request.extensions().get::<super::cdn::Envelope>().is_some() {
+        match super::cdn::decode(&mut request, limit) {
+            Some(decoded) if body.is_empty() => decoded,
+            _ => return Err(CollectBodyError::Invalid(request)),
+        }
+    } else {
+        body
+    };
     if !allow_empty && body.is_empty() {
         return Err(CollectBodyError::Invalid(request));
     }

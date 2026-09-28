@@ -365,7 +365,7 @@ const WEB_TIMEOUTS_CONFIG_KEYS: &[&str] = &[
     "decoy_header_secs",
 ];
 
-const WEB_VHOST_CONFIG_KEYS: &[&str] = &["host", "base_path", "public_addr", "decoy", "profiles"];
+const WEB_VHOST_CONFIG_KEYS: &[&str] = &["host", "base_path", "yandex_cdn_compat", "public_addr", "decoy", "profiles"];
 const WEB_DECOY_CONFIG_KEYS: &[&str] = &["mode", "upstream", "directory", "index"];
 const WEB_PROFILE_CONFIG_KEYS: &[&str] = &[
     "user",
@@ -488,6 +488,10 @@ const LOGGING_CONFIG_KEYS: &[&str] = &[
 
 // Recursive table traversal and key suggestion logic.
 mod check;
+
+// Regression coverage for the vhost-only CDN key.
+#[cfg(test)]
+mod cdn_tests;
 
 /// Rejects or reports unknown configuration keys according to strict mode.
 pub(super) fn handle_unknown_config_keys(parsed_toml: &toml::Value) -> Result<()> {

@@ -28,10 +28,10 @@ function create(settings){
   if(!frames)throw new Error('empty frame batch');
   return {frames,bytes:offset};
  }
- function splitFrames(value){
+ function splitFrames(value,maxFrames=4096){
   const view=new DataView(value),result=[];let offset=0;
   while(offset<value.byteLength){
-   if(value.byteLength-offset<8||result.length>=4096)throw new Error('invalid frame batch');
+   if(value.byteLength-offset<8||result.length>=maxFrames)throw new Error('invalid frame batch');
    const type=view.getUint8(offset),id=(view.getUint8(offset+1)<<16)|(view.getUint8(offset+2)<<8)|view.getUint8(offset+3);
    const size=view.getUint32(offset+4),end=offset+8+size;
    if((type===2&&!size)||size>1048576||end>value.byteLength)throw new Error('invalid frame');
