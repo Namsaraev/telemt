@@ -41,8 +41,11 @@ jobs:
       - name: Test WEB configuration and transport
         run: cargo test --locked web
 
+      - name: Test full suite
+        run: cargo test --locked
+
       - name: Build Release
-        run: cargo build --release --verbose
+        run: cargo build --release --locked
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v7.0.1

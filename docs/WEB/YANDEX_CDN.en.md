@@ -1,6 +1,6 @@
 # Per-vhost Yandex CDN compatibility
 
-This fork adds `yandex_cdn_compat` to `[[web.vhosts]]` on Telemt 3.5.8.
+This fork adds `yandex_cdn_compat` to `[[web.vhosts]]` on Telemt 3.5.9.
 It defaults to `false`. The old global `[web]` option and Nginx method-restoration
 patch are not used. Strict configuration rejects the global option.
 
@@ -53,7 +53,7 @@ user = "web-user"
 secret_mode = "dd"
 ```
 
-Telemt 3.5.8 caps `max_header_bytes` at 65536; 131072 is not a valid value.
+Telemt 3.5.9 caps `max_header_bytes` at 65536; 131072 is not a valid value.
 Enabling a CDN vhost requires 65536. The existing global memory-envelope
 validation still applies. Header limits are process-owned and require restart.
 Use only `https` and `https-lanes` in the shared carrier policy when enabling
@@ -156,6 +156,7 @@ Disable logging of payload headers and credentials at every hop.
 ```sh
 node --test src/web/bridge/request.test.cjs
 cargo test --locked web
+cargo test --locked
 cargo build --release --locked
 ```
 
