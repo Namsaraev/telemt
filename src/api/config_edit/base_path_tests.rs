@@ -91,7 +91,11 @@ async fn config_api_applies_valid_base_path_and_preserves_source_on_invalid_patc
 async fn web_cdn_vhost_flag_survives_config_api_and_runtime_reload() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("config.toml");
-    std::fs::write(&path, format!("{}\n[web.limits]\nmax_header_bytes = 65536\n", web_config())).unwrap();
+    std::fs::write(
+        &path,
+        format!("{}\n[web.limits]\nmax_header_bytes = 65536\n", web_config()),
+    )
+    .unwrap();
     let active = ProxyConfig::load(&path).unwrap();
     let mut patch = vhosts_patch("relay/nested");
     patch["web"]["vhosts"][0]["yandex_cdn_compat"] = Json::Bool(true);
@@ -100,7 +104,13 @@ async fn web_cdn_vhost_flag_survives_config_api_and_runtime_reload() {
     let resolved = reconcile_runtime_effect(&mut response, &active, &desired).unwrap();
     assert!(response.runtime_reload_required);
     assert!(!response.process_restart_required);
-    assert!(resolved.effective.web.runtime.as_ref().unwrap().vhosts["proxy.example.com"].yandex_cdn_compat);
+    assert!(
+        resolved.effective.web.runtime.as_ref().unwrap().vhosts["proxy.example.com"]
+            .yandex_cdn_compat
+    );
     let (managed, _) = read_managed_config(&path).await.unwrap();
-    assert_eq!(managed["web"]["vhosts"][0]["yandex_cdn_compat"].as_bool(), Some(true));
+    assert_eq!(
+        managed["web"]["vhosts"][0]["yandex_cdn_compat"].as_bool(),
+        Some(true)
+    );
 }

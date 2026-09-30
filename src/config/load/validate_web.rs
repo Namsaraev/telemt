@@ -70,14 +70,22 @@ pub(super) fn validate(config: &mut ProxyConfig) -> Result<()> {
     }
 
     validate_limits(&config.web.limits)?;
-    if config.web.vhosts.iter().any(|vhost| vhost.yandex_cdn_compat)
+    if config
+        .web
+        .vhosts
+        .iter()
+        .any(|vhost| vhost.yandex_cdn_compat)
         && config.web.limits.max_header_bytes < 65536
     {
         return config_error("Yandex CDN vhosts require web.limits.max_header_bytes = 65536");
     }
     debug::validate(&config.web.debug, &config.web.limits)?;
     let carriers = negotiation::validate(&config.web)?;
-    if config.web.vhosts.iter().any(|vhost| vhost.yandex_cdn_compat)
+    if config
+        .web
+        .vhosts
+        .iter()
+        .any(|vhost| vhost.yandex_cdn_compat)
         && carriers.iter().any(|carrier| carrier.uses_websocket())
     {
         return config_error("Yandex CDN vhosts require HTTPS carriers (https or https-lanes)");
