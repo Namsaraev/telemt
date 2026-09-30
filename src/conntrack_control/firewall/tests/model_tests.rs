@@ -6,6 +6,36 @@ use super::super::model::{DesiredPolicy, ShadowSlot};
 use super::super::nftables;
 use super::target;
 
+#[tokio::test]
+async fn disabled_inline_conntrack_reconciles_without_firewall_commands() {
+    use super::{AppliedPlan, AppliedState, FakeRunner, desired, reconcile_once};
+
+    let mut config = ProxyConfig::default();
+    config.server.conntrack_control.inline_conntrack_control = false;
+    config.server.conntrack_control.mode = ConntrackMode::Notrack;
+    let policy = DesiredPolicy::from_config(&config);
+    assert_eq!(policy, DesiredPolicy::Empty);
+
+    let runner = FakeRunner::all_available();
+    let recovery_runner = FakeRunner::all_available();
+    let mut applied = AppliedState::Unknown;
+
+    for generation in 1..=2 {
+        reconcile_once(
+            &runner,
+            &recovery_runner,
+            &mut applied,
+            &desired(generation, policy.clone()),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(applied, AppliedState::Known(AppliedPlan::Empty));
+        assert!(runner.calls().is_empty());
+        assert!(recovery_runner.calls().is_empty());
+    }
+}
+
 #[test]
 fn desired_policy_derives_exact_listener_targets() {
     let mut config = ProxyConfig::default();

@@ -73,6 +73,12 @@ where
         return Ok(());
     }
 
+    if desired.policy == DesiredPolicy::Empty && matches!(applied, AppliedState::Unknown) {
+        // An empty desired policy must not touch the firewall before rules are managed.
+        *applied = AppliedState::Known(AppliedPlan::Empty);
+        return Ok(());
+    }
+
     if matches!(applied, AppliedState::Unknown) {
         match tokio::time::timeout(TRANSACTION_TIMEOUT, recover_to_empty(interruptible)).await {
             Ok(Ok(())) => *applied = AppliedState::Known(AppliedPlan::Empty),
