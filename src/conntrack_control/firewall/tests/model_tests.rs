@@ -36,6 +36,56 @@ async fn disabled_inline_conntrack_reconciles_without_firewall_commands() {
     }
 }
 
+#[tokio::test]
+async fn actor_shutdown_with_known_empty_plan_is_command_free_and_successful() {
+    use super::{
+        Arc, CancellationToken, FakeRunner, FirewallReconciler, Notify, Ordering, ReconcileOutcome,
+        desired, watch,
+    };
+
+    let runner = FakeRunner::all_available().with_failure("nft", 1);
+    let observed_runner = runner.clone();
+    let (desired_tx, desired_rx) = watch::channel(None);
+    let (status_tx, mut status_rx) = watch::channel(None);
+    let terminal = CancellationToken::new();
+    let closed = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let completed_flag = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let cleanup_succeeded = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let reconciler = FirewallReconciler::new(
+        runner,
+        desired_rx,
+        status_tx,
+        terminal.clone(),
+        closed.clone(),
+        completed_flag.clone(),
+        cleanup_succeeded.clone(),
+        Arc::new(Notify::new()),
+    );
+    let task = tokio::spawn(reconciler.run(CancellationToken::new()));
+    desired_tx.send_replace(Some(desired(1, DesiredPolicy::Empty)));
+    tokio::time::timeout(std::time::Duration::from_secs(1), status_rx.changed())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        status_rx.borrow().as_ref().unwrap().outcome,
+        ReconcileOutcome::Applied
+    );
+    assert!(observed_runner.calls().is_empty());
+    assert!(!cleanup_succeeded.load(Ordering::Acquire));
+
+    terminal.cancel();
+    tokio::time::timeout(std::time::Duration::from_secs(1), task)
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert!(observed_runner.calls().is_empty());
+    assert!(cleanup_succeeded.load(Ordering::Acquire));
+    assert!(closed.load(Ordering::Acquire));
+    assert!(completed_flag.load(Ordering::Acquire));
+}
+
 #[test]
 fn desired_policy_derives_exact_listener_targets() {
     let mut config = ProxyConfig::default();

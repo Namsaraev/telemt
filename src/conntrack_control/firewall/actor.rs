@@ -322,13 +322,17 @@ where
         if let Some(stats) = &self.last_stats {
             stats.set_conntrack_rule_apply_ok(false);
         }
-        if let Err(error) =
+        // A confirmed empty plan has no owned rules left to clear.
+        let cleanup_result = if self.applied == AppliedState::Known(AppliedPlan::Empty) {
+            Ok(())
+        } else {
             tokio::time::timeout(SHUTDOWN_CLEANUP_TIMEOUT, recover_to_empty(&self.runner))
                 .await
                 .unwrap_or_else(|_| {
                     Err(CommandError::failed("firewall shutdown cleanup timed out"))
                 })
-        {
+        };
+        if let Err(error) = cleanup_result {
             warn!(error = %error, "Failed to clear conntrack firewall policy during shutdown");
         } else {
             self.applied = AppliedState::Known(AppliedPlan::Empty);
